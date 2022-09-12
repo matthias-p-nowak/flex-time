@@ -17,6 +17,17 @@ namespace flex_time
             ft.run();
             Console.WriteLine("all done");
         }
+        void updateDb(SqliteConnection con)
+        {
+            var cmd = con.CreateCommand();
+            foreach (var stmt in createStmts)
+            {
+                Console.WriteLine(stmt);
+                cmd.CommandText = stmt;
+                cmd.ExecuteNonQuery();
+            }
+
+        }
         void run()
         {
             var fp = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
@@ -26,14 +37,7 @@ namespace flex_time
             using (var con = new SqliteConnection(scsb.ConnectionString))
             {
                 con.Open();
-                var cmd = con.CreateCommand();
-                foreach (var stmt in createStmts)
-                {
-                    Console.WriteLine(stmt);
-                    cmd.CommandText = stmt;
-                    cmd.ExecuteNonQuery();
-                }
-                con.Close();
+                updateDb(con);
             }
         }
     }
