@@ -8,7 +8,6 @@ namespace flex_time
           project TEXT) ",
         @"CREATE TABLE version(version INTEGER )",
         @"INSERT INTO version(version) VALUES (1)"
-
       };
         static void Main(string[] args)
         {
@@ -20,11 +19,11 @@ namespace flex_time
         }
         void run()
         {
-            string[] stmts = { "hello", "world" };
             var fp = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             var dbPath = Path.Combine(fp, "flex-time.sqlite");
-            var conStr = "Data Source=" + dbPath;
-            using (var con = new SqliteConnection(conStr))
+            var scsb = new SqliteConnectionStringBuilder();
+            scsb.DataSource = dbPath;
+            using (var con = new SqliteConnection(scsb.ConnectionString))
             {
                 con.Open();
                 var cmd = con.CreateCommand();
