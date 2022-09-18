@@ -2,7 +2,9 @@ namespace flex_time
 {
     using Microsoft.Data.Sqlite;
     using System.Diagnostics.CodeAnalysis;
+    using System.Text.RegularExpressions;
 
+#pragma warning disable CS7035
     class FlexTime
     {
         public enum RA { all, recent };
@@ -75,6 +77,74 @@ namespace flex_time
                 cmd.ExecuteNonQuery();
             }
         }
+        private void deleteRecords()
+        {
+            getRecords(RA.recent);
+            int idx = 0;
+            foreach (var r in records)
+            {
+                Console.WriteLine($"{idx,3} {r.start:yyyy-MM-dd HH:mm:ss} - {r.status}");
+                idx += 1;
+            }
+            Console.Write("Enter <num> or <num>-<num> or +<num>\n" +
+            " <num> - deletes a single entry\n" +
+            " <num>-<num> deletes a range\n" +
+            " +<num> deletes entries older than <num> days\n> ");
+            var line = Console.ReadLine();
+            if (line == null)
+                return;
+            var rx = new Regex(@"\s*\+(?<o>\d+)\s*");
+            var m = rx.Matches(line);
+            if (m.Count > 0)
+            {
+                var str = m[0].Groups[@"o"].Value;
+                var days = Int32.Parse(str);
+                var dt = DateTime.Now.AddDays(-days);
+                using (var cmd = con.CreateCommand())
+                {
+                    cmd.CommandText = @"DELETE FROM flextime WHERE start<$d";
+                    cmd.Parameters.AddWithValue(@"$d", dt);
+                    cmd.ExecuteNonQuery();
+                }
+                return;
+            }
+            rx = new Regex(@"\s*(?<n1>\d+)-(?<n2>\d+)\s*");
+            m = rx.Matches(line);
+            if (m.Count > 0)
+            {
+                var gs = m[0].Groups;
+                var n1 = gs[@"n1"].Value;
+                var n2 = gs[@"n2"].Value;
+                var n1i = Int32.Parse(n1);
+                var n2i = Int32.Parse(n2);
+                using (var cmd = con.CreateCommand())
+                {
+                    cmd.CommandText = @"DELETE FROM flextime WHERE start=$d";
+                    for (var i = n1i; i <= n2i; ++i)
+                    {
+                        cmd.Parameters.Clear();
+                        cmd.Parameters.AddWithValue(@"$d", records[i].start);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                return;
+            }
+            rx = new Regex(@"^\s*(?<n>\d+)\s*$");
+            m = rx.Matches(line);
+            if (m.Count > 0)
+            {
+                var n = m[0].Groups[@"n"].Value;
+                var ni = Int32.Parse(n);
+                using (var cmd = con.CreateCommand())
+                {
+                    cmd.CommandText = @"DELETE FROM flextime WHERE start=$d";
+                    cmd.Parameters.AddWithValue(@"d", records[ni].start);
+                    cmd.ExecuteNonQuery();
+                }
+                return;
+            }
+        }
+
 
         void editConfig()
         {
@@ -155,22 +225,43 @@ namespace flex_time
             showWorkLeft();
             while (true)
             {
+                Console.Write(@"ft> ");
                 var c = Console.ReadKey(true);
+                Console.WriteLine();
                 switch (c.Key)
                 {
-                    case ConsoleKey.C:
-                        editConfig();
-                        break;
                     case ConsoleKey.Escape:
                     case ConsoleKey.Enter:
                         return;
+                    case ConsoleKey.C:
+                        editConfig();
+                        break;
+                    case ConsoleKey.D:
+                        deleteRecords();
+                        break;
+                    case ConsoleKey.E:
+                        editRecords();
+                        break;
                     case ConsoleKey.I:
                         insertNewRecord(IN, 0);
                         showWorkLeft();
                         break;
+                    case ConsoleKey.L:
+                        showRecentEntries();
+                        break;
                     case ConsoleKey.O:
                         insertNewRecord(OUT, 0);
                         showWorkLeft();
+                        break;
+                    case ConsoleKey.R:
+                        getRecords(RA.all);
+                        recalculate();
+                        break;
+                    case ConsoleKey.S:
+                        singleSubstract();
+                        break;
+                    case ConsoleKey.W:
+                        showWeekly();
                         break;
                     default:
                         printHelp();
@@ -179,7 +270,20 @@ namespace flex_time
             }
         }
 
+        private void showWeekly()
+        {
+            throw new NotImplementedException();
+        }
 
+        private void singleSubstract()
+        {
+            throw new NotImplementedException();
+        }
+
+        private void editRecords()
+        {
+            throw new NotImplementedException();
+        }
 
         void getConfig()
         {
@@ -250,7 +354,7 @@ namespace flex_time
         {
             Console.WriteLine(@"flex-time help:
 c - config
-d - delete old (>1 year) records
+d - delete records
 e - edit
 i - in
 l - list the recent entries
@@ -348,9 +452,18 @@ ESC/Enter - exit");
             }
         }
 
+        private void showRecentEntries()
+        {
+            getRecords(RA.recent);
+            foreach (var r in records)
+            {
+                Console.WriteLine($"{r.start:yyyy-MM-dd HH:mm:ss} - {r.status}");
+            }
+        }
+
         private void showWorkLeft()
         {
-            if(records.Count==0)
+            if (records.Count == 0)
                 return;
             var r = records.Last();
             var ft = r.flextime;
