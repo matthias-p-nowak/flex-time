@@ -282,7 +282,98 @@ namespace flex_time
 
         private void editRecords()
         {
-            throw new NotImplementedException();
+            getRecords(RA.recent);
+            var idx = 0;
+            foreach (var r in records)
+            {
+                Console.WriteLine($"{idx++,3}- {r.start:yyyy-MM-dd HH:mm:ss} {r.status}");
+            }
+            Console.Write("line to edit:>");
+            var line = Console.ReadLine();
+            if (line == null)
+                return;
+            try
+            {
+                idx = Int32.Parse(line);
+            }
+            catch { return; }
+            if (idx < 0 || idx >= records.Count)
+                return;
+            var record = records[idx];
+            Console.Write("time or status? >");
+            var key = Console.ReadKey(true);
+            switch (key.Key)
+            {
+                case ConsoleKey.T:
+                    Console.WriteLine();
+                    Console.WriteLine($"old: {record.start:yyyy-MM-dd HH:mm:ss}");
+                    Console.Write("new: ");
+                    var pos = Console.GetCursorPosition();
+                    string ke = "";
+                    var done = false;
+                    while (!done)
+                    {
+                        Console.SetCursorPosition(pos.Left, pos.Top);
+                        var ke2 = ke;
+                        while (ke2.Length < 14)
+                            ke2 = "_" + ke2;
+                        ke2 = ke2.Substring(0, 4) + "-" + ke2.Substring(4, 2) + "-" + ke2.Substring(6, 2)
+                            + " " + ke2.Substring(8, 2) + ":" + ke2.Substring(10, 2) + ":" + ke2.Substring(12, 2);
+                        Console.Write(ke2);
+                        key = Console.ReadKey(true);
+                        switch (key.Key)
+                        {
+                            case ConsoleKey.D0:
+                            case ConsoleKey.D1:
+                            case ConsoleKey.D2:
+                            case ConsoleKey.D3:
+                            case ConsoleKey.D4:
+                            case ConsoleKey.D5:
+                            case ConsoleKey.D6:
+                            case ConsoleKey.D7:
+                            case ConsoleKey.D8:
+                            case ConsoleKey.D9:
+                                ke += key.KeyChar;
+                                if (ke.Length > 14)
+                                    ke = ke.Substring(1);
+                                break;
+                            case ConsoleKey.Escape:
+                                return;
+                            case ConsoleKey.Backspace:
+                                ke = ke.Substring(0, ke.Length - 1);
+                                break;
+                            case ConsoleKey.Enter:
+                                done = true;
+                                break;
+                        }
+                    }
+                    var od = record.start.ToString("yyyyMMddHHmmss");
+                    var nd = od.Substring(0, 14 - ke.Length) + ke;
+                    nd = nd.Substring(0, 4) + "-" + nd.Substring(4, 2) + "-" + nd.Substring(6, 2)
+                        + " " + nd.Substring(8, 2) + ":" + nd.Substring(10, 2) + ":" + nd.Substring(12, 2);
+                    Console.WriteLine();
+                    Console.WriteLine(nd);
+                    deleteRecord(record);
+                    record.start = DateTime.Parse(nd);
+                    insertRecord(record);
+                    break;
+                case ConsoleKey.S:
+                    switch (record.status)
+                    {
+                        case "in":
+                            record.status = "out";
+                            break;
+                        case "out":
+                            record.status = "in";
+                            break;
+                    }
+                    insertRecord(record);
+                    break;
+            }
+            getRecords(RA.recent);
+            recalculate();
+            showWorkLeft();
+
         }
 
         void getConfig()
