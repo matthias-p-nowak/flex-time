@@ -548,7 +548,8 @@ ESC/Enter - exit");
             getRecords(RA.recent);
             foreach (var r in records)
             {
-                Console.WriteLine($"{r.start:yyyy-MM-dd HH:mm:ss} - {r.status}");
+
+                Console.WriteLine($"{r.start:yyyy-MM-dd HH:mm:ss} - {r.status,3} {(double)r.flextime/3600,6:#0.##}");
             }
         }
 
